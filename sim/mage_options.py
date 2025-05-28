@@ -28,3 +28,4 @@ class MageOptions:
     extra_second_arcane_missile: bool = False  # some gear increases the duration of arcane missiles by 1 second
     interrupt_arcane_missiles: bool = False  # interrupt arcane missiles early to cast rupture/surge
     t3_8_set: bool = False  # t3 8 set bonus
+    t35_3_set : bool = False

@@ -137,6 +137,45 @@ class Mage(Character):
                 interrupt = self.opts.interrupt_arcane_missiles
                 yield from self._arcane_missiles_channel(interrupt_for_surge=interrupt,
                                                          interrupt_for_rupture=interrupt)
+                
+    def _arcane_surge_fireball_rupture_missiles_improved(self, cds: CooldownUsages = CooldownUsages(), delay=2):
+        """Internal generator for simplified arcane rotation."""
+        # Flag to track if we've used Fire Blast already
+        fireball_used = False
+        
+        # Initial random delay
+        yield from self._random_delay(delay)
+        
+        # Main rotation loop
+        while True:
+            # Fireblast then use CD's
+            if not fireball_used:
+                fireball_used = True
+                yield from self._fireballr4precast()
+            
+            self._use_cds(cds)
+
+            # # Priority 2: Arcane Surge if available and not during haste effects
+            # if self.arcane_surge_cd.usable and not self.has_trinket_or_cooldown_haste():
+            #     yield from self._arcane_surge()
+                
+            # Priority 3: Arcane Rupture if available (with PoM if possible)
+            if self.arcane_rupture_cd.usable:
+                # Use Presence of Mind on Rupture if available and option is enabled
+                if self.opts.use_presence_of_mind_on_cd and self.cds.presence_of_mind.usable:
+                    self.cds.presence_of_mind.activate()
+                yield from self._arcane_rupture()
+                
+            # Priority 4: Arcane Missiles as filler
+            else:
+                # Determine if we should allow interrupts
+                interrupt = self.opts.interrupt_arcane_missiles
+                
+                # Channel Arcane Missiles with possible interrupts for higher priority spells
+                yield from self._arcane_missiles_channel(
+                    interrupt_for_surge=False,
+                    interrupt_for_rupture=interrupt
+                )
 
     def _arcane_rupture_surge_missiles(self, cds: CooldownUsages = CooldownUsages(), delay=2):
         self._use_cds(cds)
@@ -389,7 +428,7 @@ class Mage(Character):
 
     def check_for_ignite_extend(self, spell: Spell):
         has_5_stack_scorch = self.env.debuffs.scorch_stacks == 5
-        has_5_stack_ignite = self.env.debuffs.ignite and self.env.debuffs.ignite.stacks == 5
+        has_5_stack_ignite = self.env.ignite and self.env.ignite.stacks == 5
 
         has_ignite_extend_option = self.opts.extend_ignite_with_fire_blast or self.opts.extend_ignite_with_scorch
 
@@ -402,7 +441,7 @@ class Mage(Character):
 
     def extend_ignite(self):
         # check that spell is not already fireblast or scorch
-        ignite_time_remaining = self.env.debuffs.ignite.time_remaining
+        ignite_time_remaining = self.env.ignite.time_remaining
         if ignite_time_remaining <= self.opts.remaining_seconds_for_ignite_extend:
             if self.opts.extend_ignite_with_fire_blast and self.fire_blast_cd.usable:
                 yield from self._fire_blast()
@@ -440,6 +479,8 @@ class Mage(Character):
         # account for gcd
         if on_gcd and casting_time < gcd:
             gcd_wait_time = gcd - casting_time if casting_time > self.lag else gcd
+            if casting_time == 0:
+                gcd_wait_time += self.lag
 
         hit = self._roll_hit(self._get_hit_chance(spell),
                              damage_type) if spell != Spell.ARCANE_SURGE else True  # arcane surge always hits
@@ -523,7 +564,7 @@ class Mage(Character):
                 self._t2_8set_proc = True
                 self.print("T2 proc")
 
-        if hit and self.cds.zhc.is_active():
+        if self.cds.zhc.is_active():
             self.cds.zhc.use_charge()
 
         self.env.meter.register_spell_dmg(
@@ -553,7 +594,7 @@ class Mage(Character):
 
         crit_modifier += self.tal.arcane_impact * 2
 
-        hit, crit, dmg, effective_gcd, partial_amount = yield from self._spell(spell=spell,
+        hit, crit, dmg, custom_gcd, partial_amount = yield from self._spell(spell=spell,
                                                                             damage_type=DamageType.ARCANE,
                                                                             talent_school=TalentSchool.Arcane,
                                                                             min_dmg=min_dmg,
@@ -567,19 +608,34 @@ class Mage(Character):
         if self.tal.resonance_cascade and hit:
             num_duplicates = 0
             while num_duplicates < 5:
-                if self._roll_proc(4 * self.tal.resonance_cascade):
-                    num_duplicates += 1
-                    dmg /= 2
-                    self.print(f"{spell.value} duplicated for {dmg}")
-                    self.env.meter.register_spell_dmg(
-                        char_name=self.name,
-                        spell_name=spell.value,
-                        dmg=dmg,
-                        cast_time=0,
-                        aoe=spell in SPELL_HITS_MULTIPLE_TARGETS,
-                        increment_cast=False)
+                if self.opts.t35_3_set:
+                    if self._roll_proc(5 * self.tal.resonance_cascade):
+                        num_duplicates += 1
+                        dmg /= 2
+                        self.print(f"{spell.value} duplicated for {dmg}")
+                        self.env.meter.register_spell_dmg(
+                            char_name=self.name,
+                            spell_name=spell.value,
+                            dmg=dmg,
+                            cast_time=0,
+                            aoe=spell in SPELL_HITS_MULTIPLE_TARGETS,
+                            increment_cast=False)
+                    else:
+                        break
                 else:
-                    break
+                    if self._roll_proc(4 * self.tal.resonance_cascade):
+                        num_duplicates += 1
+                        dmg /= 2
+                        self.print(f"{spell.value} duplicated for {dmg}")
+                        self.env.meter.register_spell_dmg(
+                            char_name=self.name,
+                            spell_name=spell.value,
+                            dmg=dmg,
+                            cast_time=0,
+                            aoe=spell in SPELL_HITS_MULTIPLE_TARGETS,
+                            increment_cast=False)
+                    else:
+                        break
 
         if spell == Spell.ARCANE_MISSILE and self.tal.temporal_convergence:
             if self.temporal_convergence_cd.usable:
@@ -595,8 +651,8 @@ class Mage(Character):
             self.arcane_rupture_cd.activate()
 
         # handle gcd
-        if effective_gcd:
-            yield self.env.timeout(effective_gcd)
+        if custom_gcd:
+            yield self.env.timeout(custom_gcd)
 
     def _arcane_missile(self, casting_time: float = 1):
         dmg = 230
@@ -704,8 +760,8 @@ class Mage(Character):
                 return
 
         # check for ignite conditions
-        has_5_stack_ignite = self.env.debuffs.ignite and self.env.debuffs.ignite.stacks == 5
-        has_bad_ignite = has_5_stack_ignite and self.env.debuffs.ignite.is_suboptimal()
+        has_5_stack_ignite = self.env.ignite and self.env.ignite.stacks == 5
+        has_bad_ignite = has_5_stack_ignite and self.env.ignite.is_suboptimal()
 
         # check for scorch ignite drop
         if self.opts.drop_suboptimal_ignites and has_bad_ignite:
@@ -719,7 +775,7 @@ class Mage(Character):
             yield from self._pyroblast(casting_time=1)
             return
 
-        hit, crit, dmg, effective_gcd, partial_amount = yield from self._spell(spell=spell,
+        hit, crit, dmg, custom_gcd, partial_amount = yield from self._spell(spell=spell,
                                                                             damage_type=DamageType.FIRE,
                                                                             talent_school=TalentSchool.Fire,
                                                                             min_dmg=min_dmg,
@@ -744,11 +800,11 @@ class Mage(Character):
                 fire_vuln_hit = self._roll_hit(self._get_hit_chance(spell), DamageType.FIRE)
                 if fire_vuln_hit:
                     if imp_scorch_chance == 100 or self._roll_proc(imp_scorch_chance):
-                        self.env.debuffs.add_scorch()
+                        self.env.debuffs.scorch()
 
         if crit:
             if self.tal.ignite:
-                self.env.debuffs.ignite.refresh(self, dmg, spell, partial_amount < 1, self.tal.ignite)
+                self.env.ignite.refresh(self, dmg, spell, partial_amount < 1, self.tal.ignite)
 
             # check for hot streak
             if self.hot_streak and (spell == Spell.FIREBALL or spell == Spell.FIREBLAST):
@@ -765,8 +821,8 @@ class Mage(Character):
             self.fire_blast_cd.activate()
 
         # handle gcd
-        if effective_gcd:
-            yield self.env.timeout(effective_gcd)
+        if custom_gcd:
+            yield self.env.timeout(custom_gcd)
 
     def _scorch(self):
         min_dmg = 237
@@ -796,6 +852,22 @@ class Mage(Character):
                                         max_dmg=max_dmg,
                                         base_cast_time=casting_time,
                                         crit_modifier=crit_modifier)
+            
+    def _fireballr4precast(self):
+        min_dmg = 84
+        max_dmg = 117
+        casting_time = 0
+        crit_modifier = 0
+
+        if self.opts.pyro_on_t2_proc and self._t2_8set_proc:
+            yield from self._pyroblast()
+        else:
+            yield from self._fire_spell(spell=Spell.FIREBALL,
+                                        min_dmg=min_dmg,
+                                        max_dmg=max_dmg,
+                                        base_cast_time=casting_time,
+                                        crit_modifier=crit_modifier,
+                                        custom_gcd=0)
 
     def _fire_blast(self):
         min_dmg = 431
@@ -841,7 +913,7 @@ class Mage(Character):
 
         crit_modifier += self.env.debuffs.wc_stacks * 2  # winters chill added crit (2% per stack)
 
-        hit, crit, dmg, effective_gcd, partial_amount = yield from self._spell(spell=spell,
+        hit, crit, dmg, custom_gcd, partial_amount = yield from self._spell(spell=spell,
                                                                             damage_type=DamageType.FROST,
                                                                             talent_school=TalentSchool.Frost,
                                                                             min_dmg=min_dmg,
@@ -885,8 +957,8 @@ class Mage(Character):
             self.cone_of_cold_cd.activate()
 
         # handle gcd
-        if effective_gcd:
-            yield self.env.timeout(effective_gcd)
+        if custom_gcd:
+            yield self.env.timeout(custom_gcd)
 
     def _frostbolt(self):
         min_dmg = 515
@@ -958,7 +1030,7 @@ class Mage(Character):
             description = f"({round(self.lag, 2)} cast)"
             description += f" ({self.env.GCD} gcd)"
             self.print(f"Ice Barrier {description}")
-        yield self.env.timeout(self.env.GCD)
+        yield self.env.timeout(self.env.GCD + self.lag)
 
     def _icicle(self, casting_time: float = 1):
         min_dmg = 272
@@ -986,6 +1058,9 @@ class Mage(Character):
 
     def arcane_rupture_missiles(self, cds: CooldownUsages = CooldownUsages(), delay=2):
         return partial(self._set_rotation, name="arcane_rupture_missiles")(cds=cds, delay=delay)
+    
+    def arcane_surge_fireball_rupture_missiles_improved(self, cds: CooldownUsages = CooldownUsages(), delay=2):
+        return partial(self._set_rotation, name="arcane_surge_fireball_rupture_missiles_improved")(cds=cds, delay=delay)
 
     def arcane_surge_rupture_missiles(self, cds: CooldownUsages = CooldownUsages(), delay=2):
         return partial(self._set_rotation, name="arcane_surge_rupture_missiles")(cds=cds, delay=delay)

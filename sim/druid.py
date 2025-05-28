@@ -118,6 +118,8 @@ class Druid(Character):
             gcd -= 0.1 * self.tal.imp_wrath
         if on_gcd and casting_time < gcd and cooldown == 0:
             cooldown = gcd - casting_time if casting_time > self.lag else gcd
+            if casting_time == 0:
+                cooldown += self.lag
 
         hit = self._roll_hit(self._get_hit_chance(spell), damage_type)
         crit = False
@@ -166,9 +168,6 @@ class Druid(Character):
                 self.natures_grace_active = True
 
             self.print(f"{spell.value} {description} {partial_desc} **{dmg}**")
-
-        if hit and self.cds.zhc.is_active():
-            self.cds.zhc.use_charge()
 
         if hit and spell == Spell.MOONFIRE:
             self.env.debuffs.add_moonfire_dot(self)
@@ -228,10 +227,7 @@ class Druid(Character):
             casting_time -= 0.5
 
         if self.balance_of_all_things_stacks > 0:
-            casting_time -= 1 if self.opts.set_bonus_3_5_boat else .75
-            if self.opts.ebb_and_flow_idol:
-                casting_time -= 0.2
-
+            casting_time -= 0.75
             self.balance_of_all_things_stacks -= 1
 
         yield from self._nature_spell(spell=Spell.STARFIRE,
@@ -307,7 +303,7 @@ class Druid(Character):
 
         # account for gcd
         if casting_time < self.env.GCD and cooldown == 0:
-            cooldown = self.env.GCD - casting_time
+            cooldown = self.env.GCD - casting_time + self.lag
 
         hit_chance = self._get_hit_chance(spell)
         hit = random.randint(1, 100) <= hit_chance
@@ -327,9 +323,6 @@ class Druid(Character):
             self.print(f"{spell.value} {description}")
             if spell == Spell.INSECT_SWARM:
                 self.env.debuffs.add_insect_swarm_dot(self, round(casting_time + cooldown, 2))
-
-        if hit and self.cds.zhc.is_active():
-            self.cds.zhc.use_charge()
 
         # handle gcd
         if cooldown:
@@ -386,9 +379,7 @@ class Druid(Character):
 
         while True:
             self._use_cds(cds)
-            if self.opts.starfire_on_balance_of_all_things_proc and self.balance_of_all_things_stacks > 0 and self.arcane_eclipse.is_active():
-                yield from self._starfire()
-            elif self.opts.starfire_on_balance_of_all_things_proc and self.balance_of_all_things_stacks > 2:
+            if self.opts.starfire_on_balance_of_all_things_proc and self.balance_of_all_things_stacks > 0:
                 yield from self._starfire()
             elif self.nature_eclipse.is_active() and self.nature_eclipse_rotation and not self.opts.ignore_nature_eclipse:
                 yield from self.nature_eclipse_rotation(self)

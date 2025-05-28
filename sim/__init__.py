@@ -1,1 +1,1 @@
-JUSTIFY = 30
+JUSTIFY = 50

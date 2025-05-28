@@ -1,36 +1,25 @@
 from _example_imports import *
 
-cds = CooldownUsages(arcane_power=5, mqg=5)
+cds = CooldownUsages()
+#cds = CooldownUsages(arcane_power=5, mqg=5)
 mages = []
 num_mages = 4
 for i in range(num_mages):
     fm = None
     if i == 0:
-        fm = Mage(name=f'mephiring', sp=1000+29, crit=24+2, hit=16, haste=16,
+        fm = Mage(name=f'polarity', sp=670+300, crit=19.32, hit=16, haste=14,
                   tal=ArcaneMageTalents,
-                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=False, interrupt_arcane_missiles=True),
+                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=True, interrupt_arcane_missiles=True),
                   equipped_items=EquippedItems(
                       ornate_bloodstone_dagger=False,
-                      wrath_of_cenarius=True,
+                      wrath_of_cenarius=False,
                       endless_gulch=False,
                   ))
         fm.arcane_surge_rupture_missiles(cds=cds)
     elif i == 1:
-        fm = Mage(name=f'sulfuras', sp=1000+20, crit=24, hit=16, haste=16+1,
+        fm = Mage(name=f't3legs', sp=662+300, crit=18.45, hit=16, haste=15,
                   tal=ArcaneMageTalents,
-                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=False, interrupt_arcane_missiles=True),
-                  equipped_items=EquippedItems(
-                      ornate_bloodstone_dagger=False,
-                      wrath_of_cenarius=True,
-                      endless_gulch=False,
-                      true_band_of_sulfuras=True
-                  ))
-        fm.arcane_surge_fireball_rupture_missiles_improved(cds=cds)
-        #fm.arcane_surge_rupture_missiles(cds=cds)
-    elif i == 2:
-        fm = Mage(name=f'medivhring', sp=1000+56, crit=24+2, hit=16, haste=16+1,
-                  tal=ArcaneMageTalents,
-                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=False, interrupt_arcane_missiles=True),
+                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=True, interrupt_arcane_missiles=True),
                   equipped_items=EquippedItems(
                       ornate_bloodstone_dagger=False,
                       wrath_of_cenarius=False,
@@ -38,15 +27,25 @@ for i in range(num_mages):
                       true_band_of_sulfuras=False
                   ))
         fm.arcane_surge_rupture_missiles(cds=cds)
-    elif i == 3:
-        fm = Mage(name=f'80spring', sp=1000+80, crit=24, hit=16, haste=0,
+    elif i == 2:
+        fm = Mage(name=f't3legs+t3gloves', sp=673+300, crit=19.49, hit=16, haste=13,
                   tal=ArcaneMageTalents,
-                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=False, interrupt_arcane_missiles=True),
+                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=True, interrupt_arcane_missiles=True),
                   equipped_items=EquippedItems(
                       ornate_bloodstone_dagger=False,
-                      wrath_of_cenarius=True,
+                      wrath_of_cenarius=False,
                       endless_gulch=False,
                       true_band_of_sulfuras=False
+                  ))
+        fm.arcane_surge_rupture_missiles(cds=cds)
+    if i == 3:
+        fm = Mage(name=f'polarity+t3gloves', sp=681+300, crit=20.36, hit=16, haste=12,
+                  tal=ArcaneMageTalents,
+                  opts=MageOptions(t3_8_set=False, extra_second_arcane_missile=True, interrupt_arcane_missiles=True),
+                  equipped_items=EquippedItems(
+                      ornate_bloodstone_dagger=False,
+                      wrath_of_cenarius=False,
+                      endless_gulch=False,
                   ))
         fm.arcane_surge_rupture_missiles(cds=cds)
     if fm:

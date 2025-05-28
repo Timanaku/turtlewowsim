@@ -31,7 +31,6 @@ class DamageMeter:
 
         self.character_dmg: Dict[str, int] = {}
         self.character_num_casts: Dict[str, Dict[str, int]] = {}
-        self.character_num_ticks: Dict[str, Dict[str, int]] = {}
         self.character_spell_dmg: Dict[str, Dict[str, int]] = {}
         self.character_spell_cast_time: Dict[str, Dict[str, int]] = {}
 
@@ -41,7 +40,7 @@ class DamageMeter:
         self.total_proc_dmg = 0
 
     def _register(self, char_name: str, spell_name: str, dmg: int, cast_time: float, aoe=False,
-                  increment_cast=True, increment_tick=False):
+                  increment_cast=True):
         if aoe:
             dmg *= self.num_mobs
 
@@ -62,13 +61,6 @@ class DamageMeter:
                 self.character_num_casts[char_name][spell_name] = 0
             self.character_num_casts[char_name][spell_name] += 1
 
-        if increment_tick:
-            if not char_name in self.character_num_ticks:
-                self.character_num_ticks[char_name] = {}
-            if not spell_name in self.character_num_ticks[char_name]:
-                self.character_num_ticks[char_name][spell_name] = 0
-            self.character_num_ticks[char_name][spell_name] += 1
-
         if cast_time:
             if not char_name in self.character_spell_cast_time:
                 self.character_spell_cast_time[char_name] = {}
@@ -78,8 +70,8 @@ class DamageMeter:
 
         return dmg
 
-    def register_spell_dmg(self, char_name: str, spell_name: str, dmg: int,
-                           cast_time: float, aoe=False, increment_cast=True):
+    def register_spell_dmg(self, char_name: str, spell_name: str, dmg: int, cast_time: float, aoe=False,
+                           increment_cast=True):
         final_dmg = self._register(char_name, spell_name, dmg, cast_time, aoe, increment_cast)
         self.total_spell_dmg += final_dmg
 
@@ -90,8 +82,8 @@ class DamageMeter:
     def register_dot_cast(self, char_name: str, spell_name: str, cast_time: float):
         self._register(char_name, spell_name, 0, cast_time, aoe=False, increment_cast=True)
 
-    def register_dot_dmg(self, char_name: str, spell_name: str, dmg: int, aoe=False, cast_time=0):
-        final_dmg = self._register(char_name, spell_name, dmg, cast_time, aoe, increment_cast=False, increment_tick=True)
+    def register_dot_dmg(self, char_name: str, spell_name: str, dmg: int, aoe=False):
+        final_dmg = self._register(char_name, spell_name, dmg, 0, aoe, increment_cast=False)
         self.total_dot_dmg += final_dmg
 
     def register_ignite_dmg(self, char_name: str, dmg: int, aoe=False, increment_cast=False):
@@ -119,8 +111,8 @@ class DamageMeter:
         print(
             f"{'Average DPS'.ljust(JUSTIFY, ' ')}: {round(total_raid_dmg / total_time / len(self.character_dmg.keys()), 1)}")
 
-        self.env.debuffs.ignite.report()
-        self.env.debuffs.improved_shadow_bolt.report()
+        self.env.ignite.report()
+        self.env.improved_shadow_bolt.report()
 
     def detailed_report(self):
         self.report()
@@ -146,12 +138,7 @@ class DamageMeter:
                     avg_cast_time = mean([self.character_spell_cast_time[char_name][spell_name] / num_casts])
                     avg_dps = _round(avg_dmg / avg_cast_time)
 
-                if char_name in self.character_num_ticks and spell_name in self.character_num_ticks[char_name]:
-                    num_ticks = self.character_num_ticks[char_name][spell_name]
-                    stats = f"{num_casts} casts ({num_ticks} ticks)"
-                else:
-                    stats = f"{num_casts} casts"
-
+                stats = f"{num_casts} casts"
                 if total_dmg:
                     stats += f", {total_dmg} dmg ({percent_dmg}%), {avg_dmg} avg dmg"
 
@@ -184,13 +171,8 @@ class DamageMeter:
                 avg_cast_time = mean([self.character_spell_cast_time[char_name][spell_name] / num_casts])
                 avg_dps = _round(avg_dmg / avg_cast_time)
 
-            num_ticks = 0
-            if char_name in self.character_num_ticks and spell_name in self.character_num_ticks[char_name]:
-                num_ticks = self.character_num_ticks[char_name][spell_name]
-
             per_spell_data[spell_name] = {
                 "num_casts": num_casts,
-                "num_ticks": num_ticks,
                 "total_dmg": total_dmg,
                 "percent_dmg": percent_dmg,
                 "avg_dmg": avg_dmg,

@@ -8,5 +8,4 @@ class EquippedItems:
     wrath_of_cenarius: bool = None
     endless_gulch: bool = None
     true_band_of_sulfuras: bool = None
-    unceasing_frost: bool = None
-    bindings_of_contained_magic: bool = None
+    binding_of_contained_magic: bool = None

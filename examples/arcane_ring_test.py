@@ -1,7 +1,7 @@
 from _example_imports import *
 
 mages = []
-num_rings = 1
+num_rings = 3
 num_mobs = 1
 
 base_sp = 1000
@@ -42,5 +42,5 @@ for i in range(num_rings):
         mages.append(m)
 
 sim = Simulation(characters=mages, num_mobs=num_mobs)
-sim.run(iterations=1, duration=120, print_casts=True)
+sim.run(iterations=100, duration=120, print_casts=True)
 sim.detailed_report()

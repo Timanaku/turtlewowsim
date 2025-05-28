@@ -29,6 +29,12 @@ class Environment(simpy.Environment):
         self.meter = DamageMeter(self, num_mobs)
         self.process(self.debuffs.run())
 
+        from sim.ignite import Ignite
+        self.ignite = Ignite(self)
+
+        from sim.improved_shadow_bolt import ImprovedShadowBolt
+        self.improved_shadow_bolt = ImprovedShadowBolt(self)
+
         self.GCD = 1.5
         self.duration = 0
 
@@ -61,6 +67,4 @@ class Environment(simpy.Environment):
 
         for char in self.characters:
             char.add_remaining_buff_uptime()
-
-        self.debuffs.add_remaining_debuff_uptime()
 

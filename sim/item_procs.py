@@ -73,13 +73,10 @@ class EndlessGulch(ItemProc):
     PERCENT_CHANCE = 20
     COOLDOWN = 3
 
-class UnceasingFrost(ItemProc):
-    PERCENT_CHANCE = 10
-    PRINT_PROC = True
 
 class TrueBandOfSulfuras(ItemProc):
     PERCENT_CHANCE = 8
-    PERCENT_CHANCE_FIRE = 12
+    PERCENT_CHANCE_FIRE = 58
 
     def _roll_proc(self, spell: Spell, damage_type: DamageType, num_mobs: int = 1):
         chance = self.PERCENT_CHANCE_FIRE if damage_type == DamageType.FIRE else self.PERCENT_CHANCE
@@ -90,6 +87,7 @@ class TrueBandOfSulfuras(ItemProc):
 
         return False
 
-class BindingsOfContainedMagic(ItemProc):
+class BindingOfContainedMagic(ItemProc):
     PERCENT_CHANCE = 10
-    COOLDOWN = 36  # 36-second ICD
+    COOLDOWN = 36
+    PRINT_PROC = True

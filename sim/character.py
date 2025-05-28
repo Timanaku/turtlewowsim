@@ -82,12 +82,6 @@ class Character:
             DamageType.HOLY: 0
         }
 
-        self.talent_school_haste = {
-            TalentSchool.Affliction: {},
-            TalentSchool.Demonology: {},
-            TalentSchool.Destruction: {},
-        }
-
         # avoid circular import
         from sim.cooldowns import Cooldowns
         self.cds = Cooldowns(self)
@@ -164,23 +158,14 @@ class Character:
 
         damage_type_haste_factor = 1 + self.damage_type_haste[damage_type] / 100
 
-        return haste_factor * trinket_haste_factor * cooldown_haste_factor * consume_haste_factor * damage_type_haste_factor
+        overall_haste_factor = haste_factor * trinket_haste_factor * cooldown_haste_factor * consume_haste_factor * damage_type_haste_factor
 
-    def get_haste_factor_for_talent_school(self, talent_school: TalentSchool, damage_type: DamageType):
-        base_haste_factor = self.get_haste_factor_for_damage_type(damage_type)
-        if talent_school == TalentSchool.Affliction:
-            ts_haste_factor = 1
-            for haste in self.talent_school_haste[TalentSchool.Affliction].values():
-                ts_haste_factor *= 1 + haste / 100
+        if overall_haste_factor > 2.05:
+            overall_haste_factor = 2.05
 
-            return base_haste_factor * ts_haste_factor
-
-        return base_haste_factor
+        return overall_haste_factor
 
     def _get_cast_time(self, base_cast_time: float, damage_type: DamageType):
-        if base_cast_time <= 0:
-            return 0
-
         haste_scaling_factor = self.get_haste_factor_for_damage_type(damage_type)
 
         return base_cast_time / haste_scaling_factor + self.lag
@@ -312,12 +297,6 @@ class Character:
 
     def remove_consume_haste(self, haste_key):
         del self._consume_haste[haste_key]
-
-    def add_talent_school_haste(self, school, haste_key, haste_value):
-        self.talent_school_haste[school][haste_key] = haste_value
-
-    def remove_talent_school_haste(self, school, haste_key):
-        del self.talent_school_haste[school][haste_key]
 
     def add_sp_bonus(self, sp):
         self._sp_bonus += sp

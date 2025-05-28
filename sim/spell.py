@@ -12,11 +12,9 @@ class Spell(Enum):
     CURSE_OF_SHADOW = "Curse of Shadow"
     SHADOWBOLT = "Shadowbolt"
     SIPHON_LIFE = "Siphon Life"
+    DRAIN_SOUL = "Drain Soul"
     SOUL_FIRE = "Soul Fire"
     DARK_HARVEST = "Dark Harvest"
-    DARK_HARVEST_CHANNEL = "Dark Harvest Channel"
-    DRAIN_SOUL = "Drain Soul"
-    DRAIN_SOUL_CHANNEL = "Drain Soul Channel"
 
     # Mage
     ARCANE_MISSILE = "Arcane Missile"
@@ -51,7 +49,6 @@ class Spell(Enum):
 
 SPELL_COEFFICIENTS = {
     # Warlock
-    Spell.CONFLAGRATE: 0.429,
     Spell.IMMOLATE: 0.1865,
     Spell.SEARING_PAIN: 0.4285,
     Spell.SHADOWBOLT: 0.8571,
@@ -95,7 +92,6 @@ SPELL_TRIGGERS_ON_HIT = {
     Spell.SHADOWBOLT: True,
     Spell.CONFLAGRATE: False,
     Spell.CORRUPTION: False,
-    Spell.SIPHON_LIFE: False,
     Spell.CURSE_OF_AGONY: False,
     Spell.CURSE_OF_SHADOW: False,
     Spell.DRAIN_SOUL: False,
