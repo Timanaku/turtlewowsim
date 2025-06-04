@@ -160,8 +160,8 @@ class Character:
 
         overall_haste_factor = haste_factor * trinket_haste_factor * cooldown_haste_factor * consume_haste_factor * damage_type_haste_factor
 
-        if overall_haste_factor > 2.05:
-            overall_haste_factor = 2.05
+        if overall_haste_factor > 2:
+            overall_haste_factor = 2
 
         return overall_haste_factor
 
