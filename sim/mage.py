@@ -38,7 +38,8 @@ class Mage(Character):
         self.hot_streak = None
 
         if self.tal.accelerated_arcana:
-            self.damage_type_haste[DamageType.ARCANE] = 5
+            # self.damage_type_haste[DamageType.ARCANE] = 5
+            pass
 
         if self.tal.critical_mass:
             self.damage_type_crit[DamageType.FIRE] += 6
@@ -382,11 +383,14 @@ class Mage(Character):
 
         yield from self._one_scorch_then_fireballs(cds, delay=0)
 
-    def _get_cast_time(self, base_cast_time: float, damage_type: DamageType):
+    def _get_cast_time(self, base_cast_time: float, damage_type: DamageType, is_channel: bool = False):
         # check for pom
-        if base_cast_time > 0 and self.cds.presence_of_mind.is_active():
+        if base_cast_time > 0 and self.cds.presence_of_mind.is_active() and not is_channel:
             self.cds.presence_of_mind.deactivate()
             return self.lag
+        # apply accelerated arcana reduction before haste
+        if self.tal.accelerated_arcana and damage_type == DamageType.ARCANE:
+            base_cast_time *= 0.95 
 
         return super()._get_cast_time(base_cast_time, damage_type)
 
@@ -674,8 +678,7 @@ class Mage(Character):
             num_missiles += 1
             channel_time += 1
 
-        if self.tal.accelerated_arcana:
-            channel_time /= self.get_haste_factor_for_damage_type(DamageType.ARCANE)
+        channel_time = self._get_cast_time(channel_time, DamageType.ARCANE, is_channel=True)
 
         time_between_missiles = channel_time / num_missiles
 
